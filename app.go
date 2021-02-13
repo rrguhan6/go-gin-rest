@@ -41,19 +41,30 @@ func convertToNestedData(d DATA) NestedData {
 	}
 }
 
+var e error
+
 func sendToWebhook(d DATA, c chan int) {
 
 	_d := convertToNestedData(d)
-	jsonValue, _ := json.Marshal(conventionalMarshaller{_d})
-	resp, _ := http.Post("https://webhook.site/7dce8115-29d8-4f04-bba7-1e5f8850c66a", "application/json", bytes.NewBuffer(jsonValue))
+	jsonValue, e := json.Marshal(conventionalMarshaller{_d})
+	if e != nil {
+		c <- 500
+		return
+	}
+	resp, e := http.Post("https://webhook.site/7dce8115-29d8-4f04-bba7-1e5f8850c66a", "application/json", bytes.NewBuffer(jsonValue))
+	if e != nil {
+		c <- 500
+		return
+	}
 	c <- resp.StatusCode
 
 }
 
 func form(c *gin.Context) {
 	var d DATA
+	err := c.ShouldBindJSON(&d)
 
-	if err := c.ShouldBindJSON(&d); err != nil {
+	if err != nil {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
